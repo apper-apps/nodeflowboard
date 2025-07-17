@@ -39,10 +39,10 @@ class ColumnsService {
           }
 
           // Validate columns structure
-          const validColumns = columns.every(col => 
-            col.hasOwnProperty('Id') && 
-            col.hasOwnProperty('title') && 
-            col.hasOwnProperty('id')
+const validColumns = columns.every(col => 
+            Object.hasOwn(col, 'Id') && 
+            Object.hasOwn(col, 'title') && 
+            Object.hasOwn(col, 'id')
           );
 
           if (!validColumns) {
@@ -85,16 +85,17 @@ class ColumnsService {
   }
 
   // Get column by id
-  async getColumnById(id) {
-    return new Promise(async (resolve) => {
-      try {
-        const columns = await this.getColumns();
-        const column = columns.find(col => col.id === id);
-        resolve(column || null);
-      } catch (error) {
-        console.error("Error getting column by id:", error);
-        resolve(null);
-      }
+async getColumnById(id) {
+    return new Promise((resolve) => {
+      this.getColumns()
+        .then(columns => {
+          const column = columns.find(col => col.id === id);
+          resolve(column || null);
+        })
+        .catch(error => {
+          console.error("Error getting column by id:", error);
+          resolve(null);
+        });
     });
   }
 }
