@@ -71,6 +71,63 @@ export const taskService = {
     return tasks.filter(task => 
       task.title.toLowerCase().includes(searchTerm) ||
       task.description.toLowerCase().includes(searchTerm)
-    );
+);
+  },
+
+  async bulkUpdate(taskIds, updates) {
+    await delay(400);
+    const validIds = taskIds.filter(id => Number.isInteger(id) || Number.isInteger(parseInt(id)));
+    const updatedTasks = [];
+    
+    for (const id of validIds) {
+      const index = tasks.findIndex(t => t.Id === parseInt(id));
+      if (index !== -1) {
+        const updatedTask = {
+          ...tasks[index],
+          ...updates,
+          Id: parseInt(id),
+          updatedAt: new Date().toISOString()
+        };
+        tasks[index] = updatedTask;
+        updatedTasks.push({ ...updatedTask });
+      }
+    }
+    
+    return updatedTasks;
+  },
+
+  async bulkDelete(taskIds) {
+    await delay(350);
+    const validIds = taskIds.filter(id => Number.isInteger(id) || Number.isInteger(parseInt(id)));
+    
+    for (const id of validIds) {
+      const index = tasks.findIndex(t => t.Id === parseInt(id));
+      if (index !== -1) {
+        tasks.splice(index, 1);
+      }
+    }
+    
+    return { success: true, deletedCount: validIds.length };
+  },
+
+  async bulkMove(taskIds, targetStatus) {
+    await delay(300);
+    const validIds = taskIds.filter(id => Number.isInteger(id) || Number.isInteger(parseInt(id)));
+    const updatedTasks = [];
+    
+    for (const id of validIds) {
+      const index = tasks.findIndex(t => t.Id === parseInt(id));
+      if (index !== -1) {
+        const updatedTask = {
+          ...tasks[index],
+          status: targetStatus,
+          updatedAt: new Date().toISOString()
+        };
+        tasks[index] = updatedTask;
+        updatedTasks.push({ ...updatedTask });
+      }
+    }
+    
+    return updatedTasks;
   }
 };

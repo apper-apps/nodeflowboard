@@ -11,6 +11,8 @@ const TaskCard = ({
   onDragStart, 
   onDragEnd, 
   isDragging = false,
+  isSelected = false,
+  onSelectionChange,
   className = "" 
 }) => {
   const getPriorityColor = (priority) => {
@@ -45,12 +47,13 @@ const TaskCard = ({
     return format(new Date(dueDate), "MMM d");
   };
 
-  return (
+return (
     <motion.div
       className={cn(
         "bg-white rounded-lg shadow-sm border border-gray-200 p-4 cursor-pointer transition-all duration-200",
         "hover:shadow-md hover:-translate-y-1 hover:border-primary/20",
         isDragging && "opacity-80 rotate-3 shadow-lg",
+        isSelected && "ring-2 ring-primary border-primary bg-primary/5",
         className
       )}
       onClick={onClick}
@@ -60,11 +63,22 @@ const TaskCard = ({
       layout
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
-    >
+>
       <div className="flex items-start justify-between mb-3">
-        <h4 className="font-medium text-gray-900 text-sm leading-tight flex-1 pr-2">
-          {task.title}
-        </h4>
+        <div className="flex items-start space-x-2 flex-1">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => {
+              e.stopPropagation();
+              onSelectionChange?.(e.target.checked);
+            }}
+            className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary focus:ring-2 mt-0.5"
+          />
+          <h4 className="font-medium text-gray-900 text-sm leading-tight flex-1 pr-2">
+            {task.title}
+          </h4>
+        </div>
         <Badge variant={getPriorityColor(task.priority)} size="sm">
           {task.priority}
         </Badge>

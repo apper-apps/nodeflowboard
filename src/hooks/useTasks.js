@@ -83,6 +83,44 @@ export const useTasks = (projectId = null) => {
     updateTask,
     deleteTask,
     searchTasks,
-    getTaskById
+getTaskById,
+    bulkUpdate,
+    bulkDelete,
+    bulkMove
   };
+
+  async function bulkUpdate(taskIds, updates) {
+    try {
+      const updatedTasks = await taskService.bulkUpdate(taskIds, updates);
+      setTasks(prev => prev.map(task => {
+        const updated = updatedTasks.find(u => u.Id === task.Id);
+        return updated || task;
+      }));
+      return updatedTasks;
+    } catch (err) {
+      throw new Error(err.message || "Failed to update tasks");
+    }
+  }
+
+  async function bulkDelete(taskIds) {
+    try {
+      await taskService.bulkDelete(taskIds);
+      setTasks(prev => prev.filter(task => !taskIds.includes(task.Id)));
+    } catch (err) {
+      throw new Error(err.message || "Failed to delete tasks");
+    }
+  }
+
+  async function bulkMove(taskIds, targetStatus) {
+    try {
+      const updatedTasks = await taskService.bulkMove(taskIds, targetStatus);
+      setTasks(prev => prev.map(task => {
+        const updated = updatedTasks.find(u => u.Id === task.Id);
+        return updated || task;
+      }));
+      return updatedTasks;
+    } catch (err) {
+      throw new Error(err.message || "Failed to move tasks");
+    }
+  }
 };
