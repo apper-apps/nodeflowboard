@@ -1,17 +1,20 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useProjects } from "@/hooks/useProjects";
 import { useTasks } from "@/hooks/useTasks";
-import KanbanBoard from "@/components/organisms/KanbanBoard";
-import Button from "@/components/atoms/Button";
-import Badge from "@/components/atoms/Badge";
-import Loading from "@/components/ui/Loading";
-import Error from "@/components/ui/Error";
-import Empty from "@/components/ui/Empty";
-import TaskModal from "@/components/organisms/TaskModal";
-import ApperIcon from "@/components/ApperIcon";
+import ColumnConfigModal from "@/components/organisms/ColumnConfigModal";
 import { toast } from "react-toastify";
+import columnsService from "@/services/api/columnsService";
+import ApperIcon from "@/components/ApperIcon";
+import Empty from "@/components/ui/Empty";
+import Error from "@/components/ui/Error";
+import Loading from "@/components/ui/Loading";
+import KanbanBoard from "@/components/organisms/KanbanBoard";
+import TaskModal from "@/components/organisms/TaskModal";
+import Badge from "@/components/atoms/Badge";
+import Button from "@/components/atoms/Button";
+import { cn } from "@/utils/cn";
 
 const ProjectBoard = () => {
   const { projectId } = useParams();
@@ -23,8 +26,10 @@ const ProjectBoard = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [newTaskStatus, setNewTaskStatus] = useState("todo");
   const [project, setProject] = useState(null);
+  const [columns, setColumns] = useState([]);
+  const [showColumnConfig, setShowColumnConfig] = useState(false);
 
-  useEffect(() => {
+useEffect(() => {
     const foundProject = getProjectById(projectId);
     if (foundProject) {
       setProject(foundProject);
@@ -33,16 +38,38 @@ const ProjectBoard = () => {
     }
   }, [projectId, getProjectById, projectLoading, navigate]);
 
-  const getProjectStats = () => {
+  useEffect(() => {
+    const loadColumns = async () => {
+      try {
+        const columnData = await columnsService.getColumns();
+        setColumns(columnData);
+      } catch (error) {
+        console.error("Error loading columns:", error);
+      }
+    };
+    loadColumns();
+  }, []);
+
+const getProjectStats = () => {
     const stats = {
       total: tasks.length,
-      todo: tasks.filter(t => t.status === "todo").length,
-      inProgress: tasks.filter(t => t.status === "inprogress").length,
-      review: tasks.filter(t => t.status === "review").length,
-      done: tasks.filter(t => t.status === "done").length,
       highPriority: tasks.filter(t => t.priority === "high").length,
-      progress: tasks.length > 0 ? (tasks.filter(t => t.status === "done").length / tasks.length) * 100 : 0
+      progress: 0
     };
+    
+    // Calculate stats based on current columns
+    columns.forEach(column => {
+      const columnTasks = tasks.filter(t => t.status === column.id);
+      stats[column.id] = columnTasks.length;
+    });
+    
+    // Calculate progress based on last column (assuming it's "done")
+    if (columns.length > 0) {
+      const lastColumn = columns[columns.length - 1];
+      const completedTasks = tasks.filter(t => t.status === lastColumn.id).length;
+      stats.progress = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
+    }
+    
     return stats;
   };
 
@@ -94,7 +121,12 @@ const ProjectBoard = () => {
       console.error("Error deleting task:", error);
       toast.error("Failed to delete task");
     }
+}
   };
+
+  const handleColumnConfigSave = (newColumns) => {
+    setColumns(newColumns);
+    setShowColumnConfig(false);
 
   if (projectLoading || tasksLoading) {
     return <Loading type="board" />;
@@ -136,7 +168,15 @@ const ProjectBoard = () => {
             </div>
           </div>
           
-          <div className="flex items-center space-x-3">
+<div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              onClick={() => setShowColumnConfig(true)}
+              icon="Settings"
+              className="text-gray-600 hover:text-gray-800"
+            >
+              Configure Columns
+            </Button>
             <Button
               onClick={() => handleAddTask()}
               icon="Plus"
@@ -148,23 +188,21 @@ const ProjectBoard = () => {
         </div>
         
         {/* Stats Bar */}
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900">{stats.todo}</div>
-            <div className="text-sm text-gray-600">To Do</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-info">{stats.inProgress}</div>
-            <div className="text-sm text-gray-600">In Progress</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-warning">{stats.review}</div>
-            <div className="text-sm text-gray-600">Review</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-success">{stats.done}</div>
-            <div className="text-sm text-gray-600">Done</div>
-          </div>
+<div className={cn(
+          "mt-4 grid gap-4",
+          columns.length === 1 && "grid-cols-1",
+          columns.length === 2 && "grid-cols-2",
+          columns.length === 3 && "grid-cols-3",
+          columns.length >= 4 && "grid-cols-2 md:grid-cols-4"
+        )}>
+          {columns.map((column) => (
+            <div key={column.id} className="text-center">
+              <div className={cn("text-2xl font-bold", column.color)}>
+                {stats[column.id] || 0}
+              </div>
+              <div className="text-sm text-gray-600">{column.title}</div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -176,8 +214,9 @@ const ProjectBoard = () => {
             onAction={() => handleAddTask()}
           />
         ) : (
-          <KanbanBoard
+<KanbanBoard
             tasks={tasks}
+            columns={columns}
             onTaskUpdate={handleUpdateTask}
             onTaskClick={handleTaskClick}
             onAddTask={handleAddTask}
@@ -197,6 +236,13 @@ const ProjectBoard = () => {
         onDelete={handleDeleteTask}
         isEditing={!selectedTask}
         projects={[project]}
+/>
+
+      {/* Column Configuration Modal */}
+      <ColumnConfigModal
+        isOpen={showColumnConfig}
+        onClose={() => setShowColumnConfig(false)}
+        onSave={handleColumnConfigSave}
       />
     </div>
   );

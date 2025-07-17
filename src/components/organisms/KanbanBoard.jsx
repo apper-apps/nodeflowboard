@@ -6,16 +6,9 @@ import Badge from "@/components/atoms/Badge";
 import ApperIcon from "@/components/ApperIcon";
 import { cn } from "@/utils/cn";
 
-const KanbanBoard = ({ tasks = [], onTaskUpdate, onTaskClick, onAddTask }) => {
+const KanbanBoard = ({ tasks = [], columns = [], onTaskUpdate, onTaskClick, onAddTask }) => {
   const [draggedTask, setDraggedTask] = useState(null);
   const [draggedOver, setDraggedOver] = useState(null);
-
-  const columns = [
-    { id: "todo", title: "To Do", color: "text-gray-700", bgColor: "bg-gray-50" },
-    { id: "inprogress", title: "In Progress", color: "text-info", bgColor: "bg-blue-50" },
-    { id: "review", title: "Review", color: "text-warning", bgColor: "bg-yellow-50" },
-    { id: "done", title: "Done", color: "text-success", bgColor: "bg-green-50" },
-  ];
 
   const getTasksByStatus = (status) => {
     return tasks.filter(task => task.status === status);
@@ -58,7 +51,13 @@ const KanbanBoard = ({ tasks = [], onTaskUpdate, onTaskClick, onAddTask }) => {
 
   return (
     <div className="h-full overflow-auto">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 h-full p-6">
+<div className={cn(
+        "grid gap-6 h-full p-6",
+        columns.length === 1 && "grid-cols-1",
+        columns.length === 2 && "grid-cols-1 md:grid-cols-2",
+        columns.length === 3 && "grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
+        columns.length >= 4 && "grid-cols-1 md:grid-cols-2 lg:grid-cols-4"
+      )}>
         {columns.map((column) => {
           const columnTasks = getTasksByStatus(column.id);
           const isDraggedOver = draggedOver === column.id;
